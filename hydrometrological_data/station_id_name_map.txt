@@ -1,0 +1,22 @@
+{
+  "240": {
+    "name": "Jelen Do Radar",
+    "basin": "Zapadna Morava Radar"
+  },
+  "238": {
+    "name": "Virovo",
+    "basin": "Moravica"
+  },
+  "237": {
+    "name": "Rupeljevo",
+    "basin": "Djetinja"
+  },
+  "236": {
+    "name": "Požega",
+    "basin": "Skrapež"
+  },
+  "239": {
+    "name": "Puhovo",
+    "basin": "Bjelica"
+  }
+}
