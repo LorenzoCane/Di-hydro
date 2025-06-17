@@ -1,4 +1,6 @@
 import requests
+from bs4 import BeautifulSoup
+from io import StringIO
 import json
 import os
 import pandas as pd
@@ -63,6 +65,7 @@ def fetch_hydrometr_data(url, station_id, date):
     print(f'Data request from station {station_id} fetched and loaded into JSON file')
     return resp.json()
     
+
 def save_daily_data(data, station_id, date, data_dir, 
                     format= "csv"):
         
@@ -84,3 +87,73 @@ def save_daily_data(data, station_id, date, data_dir,
         df.to_parquet(save_path)
     else:
         raise ValueError (f'Format {format} cannot be selected, Please choose between "csv" and "parquet".')
+    
+def fetch_hidmet(hm_id, period, url = "https://www.hidmet.gov.rs/latin/osmotreni/nrt_tabela_grafik.php"):
+    params = {"hm_id": hm_id, "period": period}
+    complete_url = url + f'?hm_id={hm_id}&period={period}'
+
+    resp = requests.get(complete_url)
+    resp.raise_for_status()
+
+    # Parse all tables in the HTML
+    tables = pd.read_html(StringIO(resp.text))
+
+    if not tables:
+        raise ValueError("No table found on page")
+
+    df = tables[0]  # assuming the first table is what you need
+    df.columns = ["datetime", "stage_cm"]
+    # Convert types
+    df["datetime"] = pd.to_datetime(df["datetime"], format="%d.%m.%Y %H:%M")
+    df["stage_cm"] = pd.to_numeric(df["stage_cm"], errors="coerce")
+    df.dropna(subset=["datetime"], inplace=True)
+    return df.set_index("datetime")
+
+'''
+def fetch_hidmet(hidmed_id, ):
+
+    #Request to the site
+    complete_url = url + f'?hm_id={hidmed_id}&period={period}'
+    param = {"hm_id": hidmed_id, "period": period}
+    r = requests.get(url)
+    #check
+    r.raise_for_status()
+
+    #Create the soup (Unicode text for the selected HTML site)
+    soup = BeautifulSoup(r.text, "html.parser")
+    #Search for table in the HTML
+    table = soup.find("table")
+    #Check
+    if table is None:
+        raise ValueError (f"No table data found for id : {hidmed_id} , period: {period}")
+
+    #Use the tr HTML command to fetch and parse data
+    rows = table.find_all("tr")[1:] #skip header
+
+    
+    #HIDMET TABLE structure: 1st coloumn: " Datum i vreme " ("Date and time")
+    #                        2nd coloumn: "  Vodostaj (cm) " ("Water level (cm)")
+    
+
+    rec = []
+    for row in rows:
+        #use the HTML column command
+        cols = row.find_all("td")
+        #Read and save data into an array
+        if len(cols) >= 2:
+            date_text = cols[0].text.strip()
+
+            if date_text:
+                dt = datetime.strptime(date_text, "%d.%m.%Y %H:%M")
+            else:
+                print(f"[WARNING] Empty date field in row: {cols}")
+    
+    #        dt = datetime.strptime(cols[0].text.strip(), "%d.%m.%Y %H:%M") #date and time in the format used by HIDMET
+            level = float(cols[1].text.strip()) #water level [cm]
+            rec.append({"datetime": dt, "water_level_cm": level})
+
+    #save into a DataFrame
+    df = pd.DataFrame(rec).set_index("datetime", inplace=True)
+
+    return df
+'''
