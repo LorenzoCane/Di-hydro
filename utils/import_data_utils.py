@@ -4,6 +4,7 @@ from io import StringIO
 import json
 import os
 import pandas as pd
+import xarray as xr
 from datetime import datetime, timedelta
 
 def get_station_id_basin_map(url, placeholder_id = 237, option = 1):
@@ -157,3 +158,16 @@ def fetch_hidmet(hidmed_id, ):
 
     return df
 '''
+
+def grib_to_csv(file_path, target_file):
+    '''
+    
+    '''
+    #Open dataset
+    grib_ds = xr.open_dataset(file_path, engine='cfgrib')
+    #To dataFrame
+    df = grib_ds.to_dataframe().reset_index()
+
+    #Save to CSV
+    df.to_csv(target_file, index=False)
+    print(f'File {target_file} converted and save as {target_file}.')

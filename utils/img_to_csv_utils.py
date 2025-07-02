@@ -26,5 +26,7 @@ def extract_protok_data(image_path):
     for line in text.splitlines():
         match = re.findall(r'\d+\.\d{1,2}', line)
         if len(match) >= 2:
-            rows.append([date_str] + match[:3])  # al massimo 3 valori
-    return rows
+            rows.append([date_str] + match[:3])  # max 3 value per row
+
+    #Limit range to the 24 hourly data excluding last line (daily summary)
+    return rows[:24]
