@@ -1,3 +1,6 @@
 __pycache__
 *.csv
 *.jpg
+*.zip
+*.nc
+script_CDS_API.py
