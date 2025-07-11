@@ -1,4 +1,33 @@
+"""
+    OCR Image Processor
 
+    This script extracts hourly hydrometric data (e.g., flow or level) from a directory of scanned 
+    protocol images using OCR and saves the results into CSV files. It uses utility functions for 
+    image enhancement and text parsing defined in `img_to_csv_utils`.
+
+    Workflow:
+    ---------
+    - Iterate through all `.jpg` images in the input folder (e.g., flow or level directories).
+    - Enhance images and extract tabular data using Tesseract OCR.
+    - Collect parsed values into a DataFrame.
+    - Save results to CSV.
+
+    Input:
+    ------
+    - JPEG images with filenames formatted like `Protok_DD.MM.YYYY.jpg`.
+
+    Output:
+    -------
+    - Two CSV files: one for flow data, one for level data.
+
+    Dependencies:
+    -------------
+    - standard python libraries
+    - img_to_csv_utils (custom module)
+
+    Author: Lorenzo Cane - DBL E&E Area Consultant  
+    Last modified: 20/06/2025
+"""
 import os
 import sys
 import pandas as pd 

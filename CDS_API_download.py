@@ -2,83 +2,88 @@
     CDS API request and download
 
     This script downloads the requested quantities for specific frequency and time range.
-    (Original script : https://cds.climate.copernicus.eu/how-to-api)
+    The data are downloaded as monthly-aggregated ".nc" file (the original downloaded files are zipped
+    but the script extract them in the corresponding year folder)
+    For further info refer to : https://cds.climate.copernicus.eu/how-to-api)
+
+    It depends on common libraries, please install al the deèendancies listed in "requirements.txt"
+
+    Functions:
+    - extract_nc : Extract the .nc files from the zip file, rename it and save it into a user-selected folder
+
+    Author: Lorenzo Cane - DBL E&E Area Consultant
+    Last Modified: 08/07/2025
 '''
+
+#Imports 
 import os
-import zipfile
+from zipfile import ZipFile
 import xarray as xr
 import pandas as pd
 import cdsapi
 import cfgrib
-from eccodes import codes_index_new_from_file, codes_index_get, codes_index_select
 
+# -------------------------------------------------------------------------------------------
+#Definition of path and variables
 
-def list_shortnames(grib_file):
-    try:
-        index = cfgrib.open_fileindex(grib_file, filter_by_keys={'edition': 2})
-        shortnames = set(index['shortName'].values)
-        index.close()
-        return shortnames
-    except Exception as e:
-        print(f"cfgrib indexing error: {e}")
-        return []
+#Dir where to put nc files
+download_dir = './ERA5_data/'
+os.makedirs(download_dir, exist_ok=True)
 
-def extract_and_grib_to_csv(zip_path, extracted_dir, output_csv_base):
+dataset = 'reanalysis-era5-land'
+#Downloaded variables
+variables = [
+            '2m_temperature', 'snow_depth', 'surface_runoff' 'surface_pressure', 'sub_surface_runoff','surface_solar_radiation_downwards',
+			'total_evaporation', 'total_precipitation'
+            ]
+#time range definition
+years = list(range(2020, 2025))
+months = list(range(1, 13)) # (1,13) for full year (REMEMBER: last month is not included)
+days = [f"{d:02d}" for d in range(1, 32)] # !!! last number is not included: (1,32) for full month
+time = [f"{h:02d}:00" for h in range(24)] #Already in the ERA5 correct format
+
+#Area of Interest
+area = [44.5, 19.5, 43.5, 20.83]  # North, West, South, East
+
+# -------------------------------------------------------------------------------------------
+#Function definition
+def extract_nc(zip_path, extracted_dir, target_name):
     '''
-    Extracts GRIB files from ZIP and saves each variable (shortName) as a separate CSV.
+        Extract a file from a ZIP archive and rename it during extraction.
+
+        Parameters:
+        ----------
+        zip_path : str
+                Path to the ZIP archive containing the file to be extracted.
+        
+        extracted_dir : str
+                Directory where the extracted file should be placed.
+        
+        target_name : str 
+                New name to assign to the extracted file (useful for renaming generic or repeated filenames 
+                like 'data.nc' to something unique or descriptive).
+
+        
+        Return:
+        ----------
+        None
+
+        Notes:
+        ----------
+        - This does not alter the content of the ZIP archive.
     '''
-    os.makedirs(extracted_dir, exist_ok=True)
-    
-    # Step 1: Unzip
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extracted_dir)
+    with ZipFile(zip_path, 'r') as zip_ref:
+        for file in zip_ref.infolist():
+            filename = file.filename #needed by .extract
+            file.filename = target_name # Change the filename in memory (temporary change, does not alter the zip file itself)
+            zip_ref.extract(filename, path=extracted_dir)
     print(f'Extracted: {zip_path} into {extracted_dir}')
     
-    # Step 2: Find GRIB file
-    grib_file = None
-    for root, _, files in os.walk(extracted_dir):
-        for file in files:
-            if file.endswith('.grib') or file.endswith('.grb'):
-                grib_file = os.path.join(root, file)
-
-
-                # List variables
-                shortnames = list_shortnames(grib_file)
-                print(f"Variables found: {shortnames}")
-
-                for var in shortnames:
-                    try:
-                        ds = xr.open_dataset(grib_file, engine='cfgrib', backend_kwargs={
-                            'filter_by_keys': {'shortName': var, 'edition': 2}
-                        })
-                        df = ds.to_dataframe().reset_index()
-                        out_csv = f"{output_csv_base}_{var}.csv"
-                        df.to_csv(out_csv, index=False)
-                        print(f"Saved {var} to {out_csv}")
-                    except Exception as e:
-                        print(f"Failed to extract {var}: {e}")
-
 # -------------------------------------------------------------------------------------------
 # Download loop
 
-download_dir = './GRIB_download/'
-
-
-
-dataset = 'reanalysis-era5-land'
-variables = [
-  '2m_dewpoint_temperature', '2m_temperature', 'leaf_area_index_high_vegetation', 'snow_depth', 'snow_density'
-					'surface_runoff' 'surface_pressure', 'sub_surface_runoff','surface_solar_radiation_downwards',
-					'total_evaporation', 'total_precipitation'
-]
-
-years = list(range(2020, 2025))
-months = list(range(1, 13))
-days = [f"{d:02d}" for d in range(1, 32)]
-time = [f"{h:02d}:00" for h in range(24)]
-area = [44.5, 19.5, 43.5, 20.83]  # North, West, South, East
-
 for year in years:
+    #year sub-folder into ERA5 data folder
     year_dir = os.path.join(download_dir, str(year))
     os.makedirs(year_dir, exist_ok=True)
     
@@ -87,12 +92,11 @@ for year in years:
         print("\n************************************************")
         print(f"Year: {year}, Month: {month_str}")
         print("************************************************")
-        
-        extracted_dir = os.path.join(year_dir, 'extracted_zip')
-        os.makedirs(extracted_dir, exist_ok=True)
-        
-        name_file_base = os.path.join(year_dir, f'ERA5L_{year}_{month_str}')
-        target_zip = f"{name_file_base}.nc"
+        #main part of name
+        name_file_base = f'ERA5_{year}_{month_str}'
+        name_file_base_path = os.path.join(year_dir, f'ERA5_{year}_{month_str}')
+        target_zip= f"{name_file_base}.zip"
+        target_nc = name_file_base + '.nc'
         
         # ERA5-land request
         request = {
@@ -103,17 +107,18 @@ for year in years:
             'day': days,
             'time': time,
             'area': area,
-            'format': 'netcdf',
+            'format': 'netcdf'
         }
         
         # Download
-        if not os.path.exists(target_zip):
-            print(f'Downloading {target_zip}...')
+        if not os.path.exists(target_zip): #do avoid useles download
+            print(f'Downloading {name_file_base}...')
             # Set CDS API client
             client = cdsapi.Client()
             client.retrieve(dataset, request, target_zip)
         else:
             print(f'Zip already exists: {target_zip}')
+                
+        #Extract and rename
+        extract_nc(target_zip, year_dir,target_nc)
         
-        #Extract and convert
-        extract_and_grib_to_csv(target_zip, extracted_dir, name_file_base)
