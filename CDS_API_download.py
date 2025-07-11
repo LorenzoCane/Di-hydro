@@ -37,7 +37,7 @@ variables = [
 			'total_evaporation', 'total_precipitation'
             ]
 #time range definition
-years = list(range(2020, 2025))
+years = list(range(2020, 2026)) # !!! last number is not included
 months = list(range(1, 13)) # (1,13) for full year (REMEMBER: last month is not included)
 days = [f"{d:02d}" for d in range(1, 32)] # !!! last number is not included: (1,32) for full month
 time = [f"{h:02d}:00" for h in range(24)] #Already in the ERA5 correct format
