@@ -60,13 +60,13 @@ id_name_file = 'station_id_name_map.txt' #ID-name map file
 id_file_path = os.path.join(output_dir, id_name_file)
 
 #Station config and API endpoints
-station_ids = [239,240]   # [236, 237, 238, 239, 240]  # Add other known station IDs
+station_ids = [239]   # [236, 237, 238, 239, 240]  # Add other known station IDs
 station_map_url = "http://www.meteos.rs/ahs/elektromorava/getmaindata.php"
 data_url = "http://www.meteos.rs/ahs/elektromorava/getdata.php"
 
 #Start and end date in yyyy,m,d(d) format
 start_date = datetime(2019, 6, 10) # start at 2019, 6, 10
-end_date = datetime(2025, 6, 10)
+end_date = datetime(2020,1,1)
 
 delta_t = timedelta(days=1)
 
