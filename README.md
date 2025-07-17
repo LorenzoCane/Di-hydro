@@ -8,7 +8,7 @@ This repository provides utilities to:
  - **Download reanalysed climate data** from the [ERA5-land hourly dataset](https://cds.climate.copernicus.eu/datasets/reanalysis-era5-land?tab=overview) (via Copernicus CDS API)
  - **Collect in-situ hydrometeorological data** from the [METEOS Elektromorava dataset](http://www.meteos.rs/ahs/elektromorava/)
  - **Extract tabular data from images**, using OCR (Work in progress)
- - Organize dataset for ML-ready processing
+ - Organize dataset for ML-ready processing (preprocessing phase)
 
 ## Repository Structure
 ```
@@ -28,9 +28,16 @@ This repository provides utilities to:
 ├── utils/                         # Helper functions and utilities
 │       ├── img_to_csv_utils.py    # OCR and image-table extraction utilities
 │       ├── import_data_utils.py   # Meteos.rs data downloader functions
-│       └── test.py                # Test scrpit
+│       ├── preproc_utils.py       # ERA5 and river data preprocessing utils
+|       └── test.py                # Test script
+├── utils/  
+│       ├── era5_*_flattend.parquet       # ERA5 variable data flattened version ready for ML models
+│       ├── *.npz                         # PyTorch-friendly tensor ready for ML models
+│       ├── river_*_level_merged.parquet  # Merged and filterd river level for one of the rivers
+│       ├── tributaries_merged.parquet    # All tributaries rivers level merged, filtered and datetime sorted
+|       └── index_to_coord.txt            # Map flattened index of a variable to its (lat, lon) coordinate.
 ├── CDS_API_download.py          # ERA5 download script using CDS API
-├── script_CDS_API.py            # Alternative version of the above
+├── preprocessing.py             # Preprocess ERA5 and Hydrometr. data creating ML-ready format
 ├── import_data.py               # Download from meteos.rs API
 ├── img_to_csv_data.py           # Extract table data from scanned images via OCR
 ├── requirements.txt             # Required Python packages
@@ -67,10 +74,22 @@ Running the script during free time or night time is strongly suggeested.
 ### 4. Download In-situ Data from Meteos.rs
 Run the script to fetch and save time series from Elektromorava stations:
 ```
-python utils/import_data_utils.py
+python import_data.py
 ```
 Data is saved under ```hydrometrological_data/```.
 
+
+### 5. Preprocess data
+Run the script to create flattened and grid version of ERA5 data divided per variables and/or to filter and merge river data:
+```
+python preprocessing.py
+```
+The script take as an assumption that you are using the default naming convention and it has been developed for a specific use case. Adapt it based
+on your own study case. 
+
+If the execution takes too ,ong, you can comment single sections if not needed (as you will see in the [script](./preprocessing.py)).
+
+Data is saved under ```preprocessed/```.
 
 ## Coming Next
 
@@ -84,8 +103,11 @@ Use the following in .gitignore to avoid versioning unnecessary data:
 ```
 # Data and output files
 *.csv
+*.jpg
 *.zip
 *.nc
+*.parquet
+*.npz
 
 # Large folders
 ERA5_data/
