@@ -282,3 +282,16 @@ def rename_column(col, station_map):
             return name.replace(" ", "_")  # make it column-friendly
     return col  # fallback for datetime or unmatched
 
+
+def get_unit_longname(ds, variable):
+    '''
+    '''
+
+    #Variable subset
+    subset = ds[variable].isel(valid_time = 0)
+    if subset is None:
+        raise ValueError(f'variable Subset is empty, not able to detect unit and long name')
+    unit = subset.attrs['units']
+    long_name =  subset.attrs['long_name']
+
+    return unit, long_name

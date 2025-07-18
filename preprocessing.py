@@ -31,8 +31,9 @@ from tqdm import tqdm
 import sys
 #custom utils
 sys.path.insert(0, './utils')
-from preproc_utils import load_hydro_data, flat_ERA5_data, get_flat_index_to_coords, tensor_ERA5_pytorch, filter_river_data, rename_column
-
+from preproc_utils import (load_hydro_data, flat_ERA5_data, get_flat_index_to_coords, 
+                           tensor_ERA5_pytorch, filter_river_data, rename_column,
+                            get_unit_longname)
 
 # -------------------------------------------------------------------------------------------
 #Paths and global settings
@@ -54,8 +55,39 @@ with open("./hydrometrological_data/station_id_name_map.txt") as f:
     station_map = json.load(f)
 
 #********************************************************************************************
-# 1) ERA5 flattened version + coordinate mapping
+#0) Create Useful maps
 
+#Create index - coordinate map
+example_ds = './ERA5_data/2019/ERA5_2019_01.nc'
+ds = xr.open_dataset(example_ds)
+
+index_to_coord = get_flat_index_to_coords(ds)
+
+map_filename = 'index_to_coord.txt'
+map_path = os.path.join(preproc_dir, map_filename)
+
+with open(map_path, 'w') as f:
+    f.write(json.dumps(index_to_coord))
+
+#Create short name-(unit, long_name) map
+unit_long_name_dict = {}
+map_filename = 'var_to_units.txt'
+map_path = os.path.join(preproc_dir, map_filename)
+
+for variable in era5_variables:
+    un, lg_name = get_unit_longname(ds, variable)
+    unit_long_name_dict.update({variable : {
+                                'units' : un,
+                                'long_name' : lg_name
+                                }
+                            })
+
+with open(map_path, 'w') as f :
+    f.write(json.dumps(unit_long_name_dict))
+
+#********************************************************************************************
+# 1) ERA5 flattened version
+'''
 #Loop through all variables
 for var in tqdm(era5_variables):
     print(sep)
@@ -88,21 +120,10 @@ for var in tqdm(era5_variables):
     df.to_parquet(output_file, index=False)
 
     print(f'Flattened data file of {var} saved to {output_file}')
-
-#Create index - coordinate map
-example_ds = './ERA5_data/2019/ERA5_2019_01.nc'
-ds = xr.open_dataset(example_ds)
-
-index_to_coord = get_flat_index_to_coords(ds)
-
-map_filename = 'index_to_coord.txt'
-map_path = os.path.join(preproc_dir, map_filename)
-
-with open(map_path, 'w') as f:
-    f.write(json.dumps(index_to_coord))
+'''
 #********************************************************************************************
 # 2) ERA5 grid version 
-
+'''
 #Loop through all variables
 for var in tqdm(era5_variables):
     print(sep)
@@ -117,6 +138,8 @@ for var in tqdm(era5_variables):
     np.savez_compressed(output_path, tensor=var_tens, timestamps=np.array(var_timestamp, dtype='datetime64[ns]'))
 
     print(f'Tensor for variable {var} saved to {output_path}')
+
+'''    
 
 '''
 **************************************************************************
@@ -134,7 +157,7 @@ Timestamp as been saved as datatime64. While loading use:
 
 #********************************************************************************************
 # 3) Filter and merge River level data
-
+'''
 river_codes = ['236', '237', '238', '239', '240']
 excluded_stations = {"240"}  # station IDs to exclude from merged file
 all_river_dfs = []
@@ -175,3 +198,5 @@ print(merged_df.head(10))
 #Save
 merged_df.to_parquet(merged_file_path, index=False)
 print(f'Merged data saved to {merged_file_path}')
+
+'''
